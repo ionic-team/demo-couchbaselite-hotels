@@ -1,4 +1,6 @@
 import { Component } from '@angular/core';
+import { Hotel } from '../models/hotel';
+import { DatabaseService } from '../services/database.service';
 
 @Component({
   selector: 'app-tab1',
@@ -6,7 +8,16 @@ import { Component } from '@angular/core';
   styleUrls: ['tab1.page.scss']
 })
 export class Tab1Page {
+  hotels: Hotel[] = [];
 
-  constructor() {}
+  constructor(private databaseService: DatabaseService) {}
+
+  async ngOnInit() {
+    this.hotels = await this.databaseService.getHotels();
+  }
+
+  async searchQueryChanged(newQuery) {
+    this.hotels = await this.databaseService.filterData(newQuery);
+  }
 
 }
