@@ -1,0 +1,7 @@
+{
+  "name": "demo-couchbaselite-hotels",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}
