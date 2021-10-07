@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { Capacitor } from '@capacitor/core';
 import {
   CordovaEngine,
   Database,
@@ -13,6 +14,7 @@ import {
   Expression
 } from '@ionic-enterprise/couchbase-lite';
 import { Hotel } from '../models/hotel';
+import { Directory, Filesystem } from '@capacitor/filesystem';
 
 @Injectable({
   providedIn: 'root'
@@ -39,11 +41,10 @@ export class DatabaseService {
         // );
 
         try {
-        this.database.copy("assets/travel-sample.cblite2.zip", 'travel-sample', config);
+        this.database.copy("/assets/db.sqlite3", 'travel-sample', config);
         console.log("opened DB!");
         } catch (e) {
         console.log('Could not load pre-built database');
-        console.log(e);
       }
               
         resolve();
