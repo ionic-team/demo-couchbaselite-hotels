@@ -43,16 +43,16 @@ export class DatabaseService {
         console.log("opened DB!");
         } catch (e) {
         console.log('Could not load pre-built database');
+        console.log(e);
       }
-      //await this.database.open();
-
-        
+              
         resolve();
       });
     });
   }
 
   public async getHotels() {
+    await this.readyPromise;
     return this.hotels;
   }
 
