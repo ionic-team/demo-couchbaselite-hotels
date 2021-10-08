@@ -47,12 +47,44 @@ export class DatabaseService {
     // }
   }
 
+  /*
+    Import static hotel data into a large JSON object (data/hotels.ts), then load into Couchbase.
+    In future, a Couchbase Lite database zip file will be shipped with the app binary,
+    then extracted and loaded upon first time app initialization.
+  */
+    private async seedInitialData() {
+      let count = await this.getDatabaseCount();
+      if (count === 0) {
+          const smallData = data.slice(0, 200);
+          for (let emp of smallData) {
+            let doc = new MutableDocument()
+              .setNumber('id', emp.id)
+              .setString('firstName', emp.firstName)
+              .setString('lastName', emp.lastName)
+              .setString('title', emp.title)
+              .setString('office', emp.office)
+              .setString('department', emp.department);
+            
+            this.database.save(doc);
+          }
+      }
+    }
+
   public async getHotels() {
     return this.hotels;
   }
 
   public async filterData(hotelName) {
     return this.hotels;
+  }
+
+  private async getDatabaseCount() {
+    const query = QueryBuilder.select(SelectResult.all())
+      .from(DataSource.database(this.database));
+    
+    const result = await query.execute();
+    const count = (await result.allResults()).length;
+    return count;
   }
 
 }
