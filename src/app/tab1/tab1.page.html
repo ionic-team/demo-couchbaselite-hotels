@@ -1,5 +1,11 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
+    <ion-buttons collapse="true" slot="end" (click)="toggleShowBookmarks()">
+      <ion-button>
+        <ion-icon *ngIf="toggleBookmarkFilter" name="bookmarks" color="danger"></ion-icon>
+        <ion-icon *ngIf="!toggleBookmarkFilter" name="bookmarks-outline" color="danger"></ion-icon>
+      </ion-button>
+    </ion-buttons>
     <ion-title>
       Hotels
     </ion-title>
@@ -9,6 +15,12 @@
 <ion-content [fullscreen]="true">
   <ion-header collapse="condense">
     <ion-toolbar>
+      <ion-buttons collapse="true" (click)="toggleShowBookmarks()" slot="end">
+        <ion-button slot="end">
+          <ion-icon *ngIf="toggleBookmarkFilter" name="bookmarks" size="large" color="danger"></ion-icon>
+          <ion-icon *ngIf="!toggleBookmarkFilter" name="bookmarks-outline" size="large" color="danger"></ion-icon>
+        </ion-button>
+      </ion-buttons>
       <ion-title size="large">Hotels</ion-title>
     </ion-toolbar>
   </ion-header>
@@ -16,7 +28,7 @@
   <ion-searchbar placeholder="Search Name..." [(ngModel)]="currentSearchQuery" 
     (ionChange)="searchQueryChanged($event.target.value)"></ion-searchbar>
   <ion-list>
-      <ion-item *ngFor="let hotel of hotels;">
+      <ion-item *ngFor="let hotel of hotelsDisplayed;">
         <ion-label>
           <h2>{{ hotel.name }}</h2>
           <p>{{ hotel.address }}</p>

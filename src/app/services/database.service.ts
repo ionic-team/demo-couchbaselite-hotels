@@ -1,31 +1,33 @@
 import { Injectable } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
-import {
-  Database,
-  DatabaseConfiguration,
-  DataSource,
-  Meta,
-  MutableDocument,
-  Ordering,
-  QueryBuilder,
-  SelectResult,
-  Expression
-} from '@ionic-enterprise/couchbase-lite';
+// import {
+//   Database,
+//   DatabaseConfiguration,
+//   DataSource,
+//   Meta,
+//   MutableDocument,
+//   Ordering,
+//   QueryBuilder,
+//   SelectResult,
+//   Expression
+// } from '@ionic-enterprise/couchbase-lite';
+import { hotelData } from '../data/hotels';
 import { Hotel } from '../models/hotel';
 
 @Injectable({
   providedIn: 'root'
 })
 export class DatabaseService {
-  private database: Database;
+  //private database: Database;
   public hotels: Hotel[] = [];
 
   constructor() {
+    this.hotels = hotelData;
     this.initializeDatabase();
   }
 
   private async initializeDatabase(): Promise<void> {
-    const config = new DatabaseConfiguration();
+    //const config = new DatabaseConfiguration();
     //config.setEncryptionKey('8e31f8f6-60bd-482a-9c70-69855dd02c38');
     //this.database = new Database('travel-sample', config);
     // this.database.setEngine(
@@ -53,38 +55,37 @@ export class DatabaseService {
     then extracted and loaded upon first time app initialization.
   */
     private async seedInitialData() {
-      let count = await this.getDatabaseCount();
-      if (count === 0) {
-          const smallData = data.slice(0, 200);
-          for (let emp of smallData) {
-            let doc = new MutableDocument()
-              .setNumber('id', emp.id)
-              .setString('firstName', emp.firstName)
-              .setString('lastName', emp.lastName)
-              .setString('title', emp.title)
-              .setString('office', emp.office)
-              .setString('department', emp.department);
-            
-            this.database.save(doc);
-          }
-      }
+      // let count = await this.getDatabaseCount();
+      // if (count === 0) {
+      //   for (let hotel of hotelData) {
+      //     let doc = new MutableDocument()
+      //       .setString('name', hotel.name)
+      //       .setString('address', hotel.address)
+      //       .setString('phone', hotel.phone);
+          
+      //     this.database.save(doc);
+      //   }
+      // }
     }
 
   public async getHotels() {
     return this.hotels;
   }
 
-  public async filterData(hotelName) {
-    return this.hotels;
+  public async filterData(hotelName: string) {
+    const filtered = this.hotels.filter(
+      h => h.name.toLowerCase().includes(hotelName.toLowerCase()));
+
+    return filtered;
   }
 
-  private async getDatabaseCount() {
-    const query = QueryBuilder.select(SelectResult.all())
-      .from(DataSource.database(this.database));
+  // private async getDatabaseCount() {
+  //   const query = QueryBuilder.select(SelectResult.all())
+  //     .from(DataSource.database(this.database));
     
-    const result = await query.execute();
-    const count = (await result.allResults()).length;
-    return count;
-  }
+  //   const result = await query.execute();
+  //   const count = (await result.allResults()).length;
+  //   return count;
+  // }
 
 }

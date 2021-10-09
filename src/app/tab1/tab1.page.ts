@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { hotelData } from '../data/hotels';
 import { Hotel } from '../models/hotel';
 import { DatabaseService } from '../services/database.service';
 
@@ -9,30 +10,34 @@ import { DatabaseService } from '../services/database.service';
 })
 export class Tab1Page {
   hotels: Hotel[] = [];
+  hotelsDisplayed: Hotel[] = [];
   currentSearchQuery: string = "";
+  toggleBookmarkFilter: boolean = false;
 
   constructor(private databaseService: DatabaseService) {}
 
   async ngOnInit() {
-    //this.hotels = await this.databaseService.getHotels();
-
-    this.hotels = [
-      {
-        name: "Hotel California", address: "123 Fake Street", phone: "444-111-3333", bookmarked: false
-      },
-      {
-        name: "Hotel Madison", address: "456 Fear Street", phone: "666-777-8888", bookmarked: true
-      }
-    ]
-
+    this.hotels = await this.databaseService.getHotels();
+    this.hotelsDisplayed = this.hotels;
   }
 
   toggleBookmark(hotel) {
     hotel.bookmarked = !hotel.bookmarked;
   }
 
-  async searchQueryChanged(newQuery) {
-    this.hotels = await this.databaseService.filterData(newQuery);
+  toggleShowBookmarks() {
+    this.toggleBookmarkFilter = !this.toggleBookmarkFilter;
+
+    if (this.toggleBookmarkFilter) {
+      const filtered = this.hotels.filter(h => h.bookmarked == true);
+      this.hotelsDisplayed = filtered;
+    }
+    else {
+      this.hotelsDisplayed = this.hotels;
+    }
   }
 
+  async searchQueryChanged(hotelName) {
+    this.hotelsDisplayed = await this.databaseService.filterData(hotelName);
+  }
 }
