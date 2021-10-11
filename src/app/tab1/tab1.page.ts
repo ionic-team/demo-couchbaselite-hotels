@@ -21,8 +21,10 @@ export class Tab1Page {
     this.hotelsDisplayed = this.hotels;
   }
 
-  toggleBookmark(hotel) {
+  async toggleBookmark(hotel) {
     hotel.bookmarked = !hotel.bookmarked;
+
+    await this.databaseService.bookmarkHotel(hotel.id);
   }
 
   toggleShowBookmarks() {
@@ -38,6 +40,6 @@ export class Tab1Page {
   }
 
   async searchQueryChanged(hotelName) {
-    this.hotelsDisplayed = await this.databaseService.filterData(hotelName);
+    this.hotelsDisplayed = await this.databaseService.searchHotels(hotelName);
   }
 }

@@ -20,10 +20,12 @@ import { Hotel } from '../models/hotel';
 export class DatabaseService {
   private database: Database;
   private hotels: Hotel[] = [];
+  private DOC_TYPE_HOTEL = "hotel";
+  private DOC_TYPE_BOOKMARKED_HOTELS = "bookmarked_hotels";
 
   constructor() { }
 
-  private async initializeDatabase(): Promise<Hotel[]> {
+  private async initializeDatabase() {
     // When on iOS/Android, load the Couchbase Lite travel database used in many of their tutorials.
     if (Capacitor.isNativePlatform()) {
       const config = new DatabaseConfiguration();
@@ -54,18 +56,103 @@ export class DatabaseService {
       const hotelFile = await import("../data/hotels");
       this.hotels = hotelFile.hotelData;
     }
-
-    return this.hotels;
   }
 
-  public async getHotels() {
-    return await this.initializeDatabase();
+  private async retrieveHotelList(): Promise<Hotel[]> {
+    // Get all hotels
+    const query = QueryBuilder.select(SelectResult.all())
+      .from(DataSource.database(this.database))
+      .where(Expression.property("type").equalTo(Expression.string(this.DOC_TYPE_HOTEL)));
+  
+    const hotelResults = await (await query.execute()).allResults();
+
+    // Get all bookmarked hotels
+    const bookmarkQuery = QueryBuilder.select(SelectResult.all())
+      .from(DataSource.database(this.database))
+      .where(Expression.property("type").equalTo(Expression.string(this.DOC_TYPE_BOOKMARKED_HOTELS)));
+    
+    const bookmarkResults = await (await query.execute()).allResults();
+    const bookmarks = bookmarkResults["hotels"] as number[];
+
+    let hotelList: Hotel[] = [];
+    for (var key in hotelResults) {
+      // Set bookmark status
+      let singleHotel = hotelResults[key]["*"] as Hotel;
+      singleHotel.bookmarked = bookmarks.includes(singleHotel.id);
+
+      hotelList.push(singleHotel);
+    }
+
+    return hotelList;
   }
 
+  public async getHotels(): Promise<Hotel[]> {
+    await this.initializeDatabase();
+
+    return await this.retrieveHotelList();
+  }
+
+  public async searchHotels(name) {
+    const query = QueryBuilder.select(SelectResult.all())
+      .from(DataSource.database(this.database))
+      .where(Expression.property("name").like(name)
+        .and(Expression.property("type").equalTo(Expression.string(this.DOC_TYPE_HOTEL))))
+      .orderBy(Ordering.property('name').ascending());
+    
+    const results = await (await query.execute()).allResults();
+
+    let filteredHotels = [];
+    for (var key in results) {
+      // SelectResult.all() returns all properties, but puts them into a seemingly odd JSON format:
+      // [ { "*": { id: "1", firstName: "Matt" } }, { "*": { id: "2", firstName: "Max" } }]
+      // Couchbase can query multiple databases at once, so "*" represents just this single database.
+      let singleHotel = results[key]["*"];
+
+      filteredHotels.push(singleHotel);
+    }
+
+    return filteredHotels;
+  }
+
+  public async bookmarkHotel(hotelId: string) {
+    const bookmarkDoc = await this.findOrCreateBookmarkDocument();
+    let hotelArray = bookmarkDoc.getArray("hotels");
+    hotelArray.addString(hotelId);
+    bookmarkDoc.setArray("hotels", hotelArray);
+
+    this.database.save(bookmarkDoc);
+  }
   
+  private async findOrCreateBookmarkDocument(): Promise<MutableDocument> {
+    const query = QueryBuilder.select(SelectResult.expression(Meta.id))
+      .from(DataSource.database(this.database))
+      .where(Expression.property("type").equalTo(Expression.string(this.DOC_TYPE_BOOKMARKED_HOTELS)));
+
+      const resultSet = await query.execute();
+      const resultList = await resultSet.allResults();
+
+      if (resultList.length === 0) {
+        const mutableDocument = new MutableDocument()
+                .setString("type", this.DOC_TYPE_BOOKMARKED_HOTELS)
+                .setArray("hotels", new Array());
+        this.database.save(mutableDocument);
+        return mutableDocument;
+      } else {
+        const result = resultList[0];
+        const docId = result.getString("id");
+        return await (this.database.getDocument(docId)).toMutable();
+      }
+  }
+
+
+
+
 
   
   
+  
+
+
   
   
   
