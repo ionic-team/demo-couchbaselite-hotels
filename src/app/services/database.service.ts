@@ -25,8 +25,14 @@ export class DatabaseService {
 
   constructor() { }
 
+  public async getHotels(): Promise<Hotel[]> {
+    await this.initializeDatabase();
+
+    return await this.retrieveHotelList();
+  }
+
   private async initializeDatabase() {
-    // When on iOS/Android, load the Couchbase Lite travel database used in many of their tutorials.
+    // When on iOS/Android & Windows, load the Couchbase Lite travel database used in many of their tutorials.
     if (Capacitor.isNativePlatform()) {
       const config = new DatabaseConfiguration();
       
@@ -86,12 +92,6 @@ export class DatabaseService {
     return hotelList;
   }
 
-  public async getHotels(): Promise<Hotel[]> {
-    await this.initializeDatabase();
-
-    return await this.retrieveHotelList();
-  }
-
   public async searchHotels(name) {
     const query = QueryBuilder.select(SelectResult.all())
       .from(DataSource.database(this.database))
@@ -148,7 +148,7 @@ export class DatabaseService {
 
 
 
-  
+
   
   
 

@@ -1,5 +1,4 @@
 import { Component } from '@angular/core';
-import { hotelData } from '../data/hotels';
 import { Hotel } from '../models/hotel';
 import { DatabaseService } from '../services/database.service';
 
