@@ -140,22 +140,9 @@ export class DatabaseService {
       } else {
         const result = resultList[0];
         const docId = result.getString("id");
-        return await (this.database.getDocument(docId)).toMutable();
+        return MutableDocument.fromDocument(await this.database.getDocument(docId));
       }
   }
-
-
-
-
-
-
-  
-  
-
-
-  
-  
-  
   
   public async filterData(hotelName: string) {
     const filtered = this.hotels.filter(
