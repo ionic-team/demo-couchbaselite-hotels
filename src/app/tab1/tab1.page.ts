@@ -10,7 +10,6 @@ import { DatabaseService } from '../services/database.service';
 export class Tab1Page {
   hotels: Hotel[] = [];
   hotelsDisplayed: Hotel[] = [];
-  currentSearchQuery: string = "";
   toggleBookmarkFilter: boolean = false;
 
   constructor(private databaseService: DatabaseService) {}

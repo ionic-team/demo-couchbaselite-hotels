@@ -93,6 +93,9 @@ export class DatabaseService {
   }
 
   public async searchHotels(name) {
+    //const quer = 
+      //this.database.createQuery("SELECT * FROM _ WHERE name LIKE '%name%' AND type = this.DOC_TYPE_HOTEL ORDER BY name");
+
     const query = QueryBuilder.select(SelectResult.all())
       .from(DataSource.database(this.database))
       .where(Expression.property("name").like(name)
