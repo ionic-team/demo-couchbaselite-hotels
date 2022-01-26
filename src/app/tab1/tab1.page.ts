@@ -25,7 +25,7 @@ export class Tab1Page {
     await this.databaseService.bookmarkHotel(hotel.id);
   }
 
-  toggleShowBookmarks() {
+  async toggleShowBookmarks() {
     this.toggleBookmarkFilter = !this.toggleBookmarkFilter;
 
     if (this.toggleBookmarkFilter) {

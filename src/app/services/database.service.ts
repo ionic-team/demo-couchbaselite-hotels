@@ -22,6 +22,7 @@ export class DatabaseService {
   private hotels: Hotel[] = [];
   private DOC_TYPE_HOTEL = "hotel";
   private DOC_TYPE_BOOKMARKED_HOTELS = "bookmarked_hotels";
+  private bookmarkDocument: MutableDocument;
 
   constructor() { }
 
@@ -53,6 +54,9 @@ export class DatabaseService {
         } else {
           this.database = new Database("travel-sample", config);
         }
+
+        // Create the "bookmarked_hotels" document if it doesn't exist
+        this.bookmarkDocument = await this.findOrCreateBookmarkDocument();
       } catch (e) {
         console.log('Could not load pre-built database.');
       }
@@ -73,15 +77,16 @@ export class DatabaseService {
     const hotelResults = await (await query.execute()).allResults();
 
     // Get all bookmarked hotels
-    const bookmarkQuery = QueryBuilder.select(SelectResult.all())
-      .from(DataSource.database(this.database))
-      .where(Expression.property("type").equalTo(Expression.string(this.DOC_TYPE_BOOKMARKED_HOTELS)));
+    // const bookmarkQuery = QueryBuilder.select(SelectResult.all())
+    //   .from(DataSource.database(this.database))
+    //   .where(Expression.property("type").equalTo(Expression.string(this.DOC_TYPE_BOOKMARKED_HOTELS)));
     
-    const bookmarkResults = await (await query.execute()).allResults();
-    const bookmarks = bookmarkResults["hotels"] as number[];
+    // const bookmarkResults = await (await query.execute()).allResults();
+    // const bookmarks = bookmarkResults["hotels"] as number[];
 
+    let bookmarks = this.bookmarkDocument.getArray("hotels");
     let hotelList: Hotel[] = [];
-    for (var key in hotelResults) {
+    for (let key in hotelResults) {
       // Set bookmark status
       let singleHotel = hotelResults[key]["*"] as Hotel;
       singleHotel.bookmarked = bookmarks.includes(singleHotel.id);
@@ -118,12 +123,11 @@ export class DatabaseService {
   }
 
   public async bookmarkHotel(hotelId: string) {
-    const bookmarkDoc = await this.findOrCreateBookmarkDocument();
-    let hotelArray = bookmarkDoc.getArray("hotels");
+    let hotelArray = this.bookmarkDocument.getArray("hotels");
     hotelArray.addString(hotelId);
-    bookmarkDoc.setArray("hotels", hotelArray);
+    this.bookmarkDocument.setArray("hotels", hotelArray);
 
-    this.database.save(bookmarkDoc);
+    this.database.save(this.bookmarkDocument);
   }
   
   private async findOrCreateBookmarkDocument(): Promise<MutableDocument> {
