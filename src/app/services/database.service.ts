@@ -27,8 +27,10 @@ export class DatabaseService {
   constructor() { }
 
   public async getHotels(): Promise<Hotel[]> {
-    await this.initializeDatabase();
+    // await this.initializeDatabase();
 
+    // return await this.retrieveHotelList();
+    this.seedInitialData();
     return await this.retrieveHotelList();
   }
 
@@ -68,13 +70,31 @@ export class DatabaseService {
     }
   }
 
+  private async seedInitialData() { 
+    const hotelFile = await import("../data/hotels");
+
+    for (let hotel of hotelFile.hotelData) {
+      let doc = new MutableDocument()
+        .setString('name', hotel.name)
+        .setString('address', hotel.address)
+        .setString('phone', hotel.phone)
+        .setString('type', this.DOC_TYPE_HOTEL);
+      
+      this.database.save(doc);
+    }
+  }
+
+
   private async retrieveHotelList(): Promise<Hotel[]> {
     // Get all hotels
-    const query = QueryBuilder.select(SelectResult.all())
-      .from(DataSource.database(this.database))
-      .where(Expression.property("type").equalTo(Expression.string(this.DOC_TYPE_HOTEL)));
+    // const query = QueryBuilder.select(SelectResult.all())
+    //   .from(DataSource.database(this.database))
+    //   .where(Expression.property("type").equalTo(Expression.string(this.DOC_TYPE_HOTEL)));
+    
+    const query = this.database.createQuery("SELECT * FROM _ WHERE type = 'hotel' ORDER BY name");
   
     const hotelResults = await (await query.execute()).allResults();
+    console.log(hotelResults);
 
     // Get all bookmarked hotels
     // const bookmarkQuery = QueryBuilder.select(SelectResult.all())
@@ -98,8 +118,9 @@ export class DatabaseService {
   }
 
   public async searchHotels(name) {
-    //const quer = 
-      //this.database.createQuery("SELECT * FROM _ WHERE name LIKE '%name%' AND type = this.DOC_TYPE_HOTEL ORDER BY name");
+    const quer = 
+      this.database.createQuery("SELECT * FROM _ WHERE name LIKE '%name%' AND type = this.DOC_TYPE_HOTEL ORDER BY name");
+    const t = await (await quer.execute()).allResults();
 
     const query = QueryBuilder.select(SelectResult.all())
       .from(DataSource.database(this.database))
