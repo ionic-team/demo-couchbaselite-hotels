@@ -30,7 +30,7 @@ export class DatabaseService {
     // await this.initializeDatabase();
 
     // return await this.retrieveHotelList();
-    this.seedInitialData();
+    await this.seedInitialData();
     return await this.retrieveHotelList();
   }
 
@@ -71,16 +71,19 @@ export class DatabaseService {
   }
 
   private async seedInitialData() { 
+    this.database = new Database("travel-sample", new DatabaseConfiguration());
+
     const hotelFile = await import("../data/hotels");
 
     for (let hotel of hotelFile.hotelData) {
-      let doc = new MutableDocument()
-        .setString('name', hotel.name)
-        .setString('address', hotel.address)
-        .setString('phone', hotel.phone)
-        .setString('type', this.DOC_TYPE_HOTEL);
+      // let doc = new MutableDocument()
+      //   .setString('name', hotel.name)
+      //   .setString('address', hotel.address)
+      //   .setString('phone', hotel.phone)
+      //   .setString('type', this.DOC_TYPE_HOTEL);
       
-      this.database.save(doc);
+      // this.database.save(doc);
+      const query = this.database.createQuery("INSERT INTO * FROM _ WHERE type = 'hotel' ORDER BY name");
     }
   }
 
