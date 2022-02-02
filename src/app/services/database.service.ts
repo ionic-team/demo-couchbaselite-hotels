@@ -76,14 +76,14 @@ export class DatabaseService {
     const hotelFile = await import("../data/hotels");
 
     for (let hotel of hotelFile.hotelData) {
-      // let doc = new MutableDocument()
-      //   .setString('name', hotel.name)
-      //   .setString('address', hotel.address)
-      //   .setString('phone', hotel.phone)
-      //   .setString('type', this.DOC_TYPE_HOTEL);
+      let doc = new MutableDocument()
+        .setString('name', hotel.name)
+        .setString('address', hotel.address)
+        .setString('phone', hotel.phone)
+        .setString('type', this.DOC_TYPE_HOTEL);
       
-      // this.database.save(doc);
-      const query = this.database.createQuery("INSERT INTO * FROM _ WHERE type = 'hotel' ORDER BY name");
+      await this.database.save(doc);
+      //const query = this.database.createQuery("INSERT INTO * FROM _ WHERE type = 'hotel' ORDER BY name");
     }
   }
 
