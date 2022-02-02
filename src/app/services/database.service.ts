@@ -71,47 +71,46 @@ export class DatabaseService {
   }
 
   private async seedInitialData() { 
-    this.database = new Database("travel-sample", new DatabaseConfiguration());
+    let dc = new DatabaseConfiguration();
+    dc.setEncryptionKey('8e31f8f6-60bd-482a-9c70-69855dd02c39');
+    this.database = new Database("travel", dc);
+    await this.database.open();
 
-    const hotelFile = await import("../data/hotels");
+    let count = await this.getHotelCount();
+    if (count === 0) {
+      const hotelFile = await import("../data/hotels");
 
-    for (let hotel of hotelFile.hotelData) {
-      let doc = new MutableDocument()
-        .setString('name', hotel.name)
-        .setString('address', hotel.address)
-        .setString('phone', hotel.phone)
-        .setString('type', this.DOC_TYPE_HOTEL);
-      
-      await this.database.save(doc);
-      //const query = this.database.createQuery("INSERT INTO * FROM _ WHERE type = 'hotel' ORDER BY name");
+      for (let hotel of hotelFile.hotelData) {
+        let doc = new MutableDocument()
+          .setString('name', hotel.name)
+          .setString('address', hotel.address)
+          .setString('phone', hotel.phone)
+          .setString('type', this.DOC_TYPE_HOTEL);
+        
+        this.database.save(doc);
+      }
     }
   }
 
 
   private async retrieveHotelList(): Promise<Hotel[]> {
     // Get all hotels
-    // const query = QueryBuilder.select(SelectResult.all())
-    //   .from(DataSource.database(this.database))
-    //   .where(Expression.property("type").equalTo(Expression.string(this.DOC_TYPE_HOTEL)));
-    
-    const query = this.database.createQuery("SELECT * FROM _ WHERE type = 'hotel' ORDER BY name");
-  
-    const hotelResults = await (await query.execute()).allResults();
-    console.log(hotelResults);
+    const hotelQuery = this.database.createQuery(`SELECT * FROM _ WHERE type = ${this.DOC_TYPE_HOTEL} ORDER BY name`);
+    const hotelResults = await (await hotelQuery.execute()).allResults();
 
     // Get all bookmarked hotels
-    // const bookmarkQuery = QueryBuilder.select(SelectResult.all())
-    //   .from(DataSource.database(this.database))
-    //   .where(Expression.property("type").equalTo(Expression.string(this.DOC_TYPE_BOOKMARKED_HOTELS)));
-    
-    // const bookmarkResults = await (await query.execute()).allResults();
-    // const bookmarks = bookmarkResults["hotels"] as number[];
+    const bookmarkQuery = this.database.createQuery(`SELECT * FROM _ WHERE type = ${this.DOC_TYPE_BOOKMARKED_HOTELS}`);
+    const bookmarkResults = await (await hotelQuery.execute()).allResults();
+    const bookmarks = bookmarkResults["hotels"] as number[];
 
-    let bookmarks = this.bookmarkDocument.getArray("hotels");
+    //let bookmarks = this.bookmarkDocument.getArray("hotels");
     let hotelList: Hotel[] = [];
     for (let key in hotelResults) {
       // Set bookmark status
-      let singleHotel = hotelResults[key]["*"] as Hotel;
+      // SelectResult.all() returns all properties, but puts them into a seemingly odd JSON format:
+      // [ { "_": { id: "1", firstName: "Matt" } }, { "_": { id: "2", firstName: "Max" } }]
+      // Couchbase can query multiple databases at once, so "_" is just this single database.
+      let singleHotel = hotelResults[key]["_"] as Hotel;
       singleHotel.bookmarked = bookmarks.includes(singleHotel.id);
 
       hotelList.push(singleHotel);
@@ -173,6 +172,14 @@ export class DatabaseService {
         const docId = result.getString("id");
         return MutableDocument.fromDocument(await this.database.getDocument(docId));
       }
+  }
+
+  private async getHotelCount() {
+    const hotelQuery = this.database.createQuery("SELECT * FROM _ WHERE type = 'hotel' ORDER BY name");
+  
+    const result = await hotelQuery.execute();
+    const count = (await result.allResults()).length;
+    return count;
   }
   
   public async filterData(hotelName: string) {

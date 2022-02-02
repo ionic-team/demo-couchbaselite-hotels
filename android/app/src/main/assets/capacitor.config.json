@@ -1,6 +1,6 @@
 {
 	"appId": "io.ionic.demo.couchbaselite.hotels",
-	"appName": "demo-couchbaselite-hotels",
+	"appName": "CBL Hotels",
 	"webDir": "www",
 	"bundledWebRuntime": false
 }
