@@ -15,8 +15,8 @@ export class Tab1Page {
   constructor(private databaseService: DatabaseService) {}
 
   async ngOnInit() {
-    // this.hotels = await this.databaseService.getHotels();
-    // this.hotelsDisplayed = this.hotels;
+    this.hotels = await this.databaseService.getHotels();
+    this.hotelsDisplayed = this.hotels;
   }
 
   async toggleBookmark(hotel) {
@@ -26,18 +26,15 @@ export class Tab1Page {
   }
 
   async toggleShowBookmarks() {
-    this.hotels = await this.databaseService.getHotels();
-    this.hotelsDisplayed = this.hotels;
+    this.toggleBookmarkFilter = !this.toggleBookmarkFilter;
 
-    // this.toggleBookmarkFilter = !this.toggleBookmarkFilter;
-
-    // if (this.toggleBookmarkFilter) {
-    //   const filtered = this.hotels.filter(h => h.bookmarked == true);
-    //   this.hotelsDisplayed = filtered;
-    // }
-    // else {
-    //   this.hotelsDisplayed = this.hotels;
-    // }
+    if (this.toggleBookmarkFilter) {
+      const filtered = this.hotels.filter(h => h.bookmarked == true);
+      this.hotelsDisplayed = filtered;
+    }
+    else {
+      this.hotelsDisplayed = this.hotels;
+    }
   }
 
   async searchQueryChanged(hotelName) {

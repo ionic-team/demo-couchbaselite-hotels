@@ -27,41 +27,18 @@ export class DatabaseService {
   constructor() { }
 
   public async getHotels(): Promise<Hotel[]> {
-    // await this.initializeDatabase();
+    await this.initializeDatabase();
 
-    // return await this.retrieveHotelList();
-    await this.seedInitialData();
     return await this.retrieveHotelList();
   }
 
   private async initializeDatabase() {
     // When on iOS/Android & Windows, load the Couchbase Lite travel database used in many of their tutorials.
     if (Capacitor.isNativePlatform()) {
-      const config = new DatabaseConfiguration();
-      
-      /* Note about encryption: In a real-world app, the encryption key should not be hardcoded like it is here. 
-         One strategy is to auto generate a unique encryption key per user on initial app load, then store it securely in the device's keychain for later retrieval.
-         Ionic's Identity Vault (https://ionicframework.com/docs/enterprise/identity-vault) plugin is an option. Using IV’s storage API, you can ensure that the 
-         key cannot be read or accessed without the user being authenticated first. */
-      config.setEncryptionKey('8e31f8f6-60bd-482a-9c70-69855dd02c38');
+      await this.seedInitialData();
 
-      try {
-        if (!this.database.exists("travel-sample", Directory.Data)) {
-          const travelDbFile = await Filesystem.getUri({
-            directory: Directory.Data,
-            path: "db.sqlite3"
-          });
-  
-          this.database.copy(travelDbFile.uri, 'travel-sample', config);
-        } else {
-          this.database = new Database("travel-sample", config);
-        }
-
-        // Create the "bookmarked_hotels" document if it doesn't exist
-        this.bookmarkDocument = await this.findOrCreateBookmarkDocument();
-      } catch (e) {
-        console.log('Could not load pre-built database.');
-      }
+      // Create the "bookmarked_hotels" document if it doesn't exist
+      this.bookmarkDocument = await this.findOrCreateBookmarkDocument();
     }
     else {
       // When running on the web, use hotel data from a file
@@ -71,13 +48,18 @@ export class DatabaseService {
   }
 
   private async seedInitialData() { 
+    /* Note about encryption: In a real-world app, the encryption key should not be hardcoded like it is here. 
+       One strategy is to auto generate a unique encryption key per user on initial app load, then store it securely in the device's keychain for later retrieval.
+       Ionic's Identity Vault (https://ionic.io/docs/identity-vault) plugin is an option. Using IV’s storage API, you can ensure that the 
+       key cannot be read or accessed without the user being authenticated first. */
     let dc = new DatabaseConfiguration();
     dc.setEncryptionKey('8e31f8f6-60bd-482a-9c70-69855dd02c39');
     this.database = new Database("travel", dc);
     await this.database.open();
 
-    let count = await this.getHotelCount();
-    if (count === 0) {
+    const len = (await this.getAllHotels()).length;
+    console.log(`Found ${len} hotels in database`);
+    if (len === 0) {
       const hotelFile = await import("../data/hotels");
 
       for (let hotel of hotelFile.hotelData) {
@@ -95,22 +77,21 @@ export class DatabaseService {
 
   private async retrieveHotelList(): Promise<Hotel[]> {
     // Get all hotels
-    const hotelQuery = this.database.createQuery(`SELECT * FROM _ WHERE type = ${this.DOC_TYPE_HOTEL} ORDER BY name`);
+    const hotelQuery = this.database.createQuery(`SELECT * FROM _ WHERE type = '${this.DOC_TYPE_HOTEL}' ORDER BY name`);
     const hotelResults = await (await hotelQuery.execute()).allResults();
+    console.log(JSON.stringify(hotelResults));
 
     // Get all bookmarked hotels
-    const bookmarkQuery = this.database.createQuery(`SELECT * FROM _ WHERE type = ${this.DOC_TYPE_BOOKMARKED_HOTELS}`);
-    const bookmarkResults = await (await hotelQuery.execute()).allResults();
-    const bookmarks = bookmarkResults["hotels"] as number[];
+    //const bookmarks = this.bookmarkDocument. bookmarkResults["hotels"] as number[];
 
-    //let bookmarks = this.bookmarkDocument.getArray("hotels");
+    const bookmarks = this.bookmarkDocument.getArray("hotels");
     let hotelList: Hotel[] = [];
     for (let key in hotelResults) {
-      // Set bookmark status
-      // SelectResult.all() returns all properties, but puts them into a seemingly odd JSON format:
-      // [ { "_": { id: "1", firstName: "Matt" } }, { "_": { id: "2", firstName: "Max" } }]
       // Couchbase can query multiple databases at once, so "_" is just this single database.
+      // [ { "_": { id: "1", firstName: "Matt" } }, { "_": { id: "2", firstName: "Max" } }]
       let singleHotel = hotelResults[key]["_"] as Hotel;
+
+      // Set bookmark status
       singleHotel.bookmarked = bookmarks.includes(singleHotel.id);
 
       hotelList.push(singleHotel);
@@ -120,24 +101,13 @@ export class DatabaseService {
   }
 
   public async searchHotels(name) {
-    const quer = 
-      this.database.createQuery("SELECT * FROM _ WHERE name LIKE '%name%' AND type = this.DOC_TYPE_HOTEL ORDER BY name");
-    const t = await (await quer.execute()).allResults();
-
-    const query = QueryBuilder.select(SelectResult.all())
-      .from(DataSource.database(this.database))
-      .where(Expression.property("name").like(name)
-        .and(Expression.property("type").equalTo(Expression.string(this.DOC_TYPE_HOTEL))))
-      .orderBy(Ordering.property('name').ascending());
-    
+    const query = 
+      this.database.createQuery(`SELECT * FROM _ WHERE name LIKE '%name%' AND type = '${this.DOC_TYPE_HOTEL}' ORDER BY name`);
     const results = await (await query.execute()).allResults();
 
     let filteredHotels = [];
     for (var key in results) {
-      // SelectResult.all() returns all properties, but puts them into a seemingly odd JSON format:
-      // [ { "*": { id: "1", firstName: "Matt" } }, { "*": { id: "2", firstName: "Max" } }]
-      // Couchbase can query multiple databases at once, so "*" represents just this single database.
-      let singleHotel = results[key]["*"];
+      let singleHotel = results[key]["_"];
 
       filteredHotels.push(singleHotel);
     }
@@ -154,38 +124,29 @@ export class DatabaseService {
   }
   
   private async findOrCreateBookmarkDocument(): Promise<MutableDocument> {
-    const query = QueryBuilder.select(SelectResult.expression(Meta.id))
-      .from(DataSource.database(this.database))
-      .where(Expression.property("type").equalTo(Expression.string(this.DOC_TYPE_BOOKMARKED_HOTELS)));
+    const bookmarkQuery = this.database.createQuery(`SELECT * FROM _ WHERE type = '${this.DOC_TYPE_BOOKMARKED_HOTELS}'`);
+    const resultSet = await bookmarkQuery.execute();
+    const resultList = await resultSet.allResults();
+    console.log(JSON.stringify(resultList));
 
-      const resultSet = await query.execute();
-      const resultList = await resultSet.allResults();
+    if (resultList.length === 0) {
+      const mutableDocument = new MutableDocument()
+              .setString("type", this.DOC_TYPE_BOOKMARKED_HOTELS)
+              .setArray("hotels", new Array());
+      this.database.save(mutableDocument);
 
-      if (resultList.length === 0) {
-        const mutableDocument = new MutableDocument()
-                .setString("type", this.DOC_TYPE_BOOKMARKED_HOTELS)
-                .setArray("hotels", new Array());
-        this.database.save(mutableDocument);
-        return mutableDocument;
-      } else {
-        const result = resultList[0];
-        const docId = result.getString("id");
-        return MutableDocument.fromDocument(await this.database.getDocument(docId));
-      }
+      return mutableDocument;
+    } else {
+      const result = resultList[0];
+      const docId = result.getString("id");
+      return MutableDocument.fromDocument(await this.database.getDocument(docId));
+    }
   }
 
-  private async getHotelCount() {
-    const hotelQuery = this.database.createQuery("SELECT * FROM _ WHERE type = 'hotel' ORDER BY name");
-  
-    const result = await hotelQuery.execute();
-    const count = (await result.allResults()).length;
-    return count;
-  }
-  
-  public async filterData(hotelName: string) {
-    const filtered = this.hotels.filter(
-      h => h.name.toLowerCase().includes(hotelName.toLowerCase()));
-
-    return filtered;
+  private async getAllHotels() {
+    const query = this.database.createQuery(`SELECT * FROM _ WHERE type = '${this.DOC_TYPE_HOTEL}' ORDER BY name`);
+    const result = await query.execute();
+    const results = await result.allResults();
+    return results;
   }
 }
