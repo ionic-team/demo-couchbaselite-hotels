@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core';
-import { Capacitor } from '@capacitor/core';
 import {
   Database,
   DatabaseConfiguration,
@@ -26,19 +25,9 @@ export class DatabaseService {
   }
 
   private async initializeDatabase() {
-    // When on iOS/Android & Windows, load the Couchbase Lite travel database used in many of their tutorials.
-    if (Capacitor.isNativePlatform()) {
-      await this.seedInitialData();
+    await this.seedInitialData();
 
-      // Create the "bookmarked_hotels" document if it doesn't exist
-      this.bookmarkDocument = await this.findOrCreateBookmarkDocument();
-      //console.log("got bookmark: " + JSON.stringify(this.bookmarkDocument));
-    }
-    else {
-      // When running on the web, use hotel data from a file
-      const hotelFile = await import("../data/hotels");
-      this.hotels = hotelFile.hotelData;
-    }
+    this.bookmarkDocument = await this.findOrCreateBookmarkDocument();
   }
 
   private async seedInitialData() { 
@@ -73,18 +62,10 @@ export class DatabaseService {
     // Get all hotels
     const hotelQuery = this.database.createQuery(`SELECT * FROM _ WHERE type = '${this.DOC_TYPE_HOTEL}' ORDER BY name`);
     const hotelResults = await (await hotelQuery.execute()).allResults();
-    //console.log("bookmark: " + JSON.stringify(this.bookmarkDocument));
 
     // Get all bookmarked hotels
-    // let bookmarks = this.bookmarkDocument.getArray("hotels") as number[];
-    // console.log("bookmarks: " + JSON.stringify(bookmarks));
-    // console.log(typeof(bookmarks));
-    // if (typeof(bookmarks) === "string") {
-    //   // convert string to array
-    //   bookmarks = Array.from(bookmarks);
-    //   console.log("bookmarks convert: " + JSON.stringify(bookmarks));
-    // }
-
+    let bookmarks = this.bookmarkDocument.getArray("hotels") as number[];
+    
     let hotelList: Hotel[] = [];
     for (let key in hotelResults) {
       // Couchbase can query multiple databases at once, so "_" is just this single database.
@@ -92,7 +73,7 @@ export class DatabaseService {
       let singleHotel = hotelResults[key]["_"] as Hotel;
 
       // Set bookmark status
-      //singleHotel.bookmarked = bookmarks.includes(singleHotel.id);
+      singleHotel.bookmarked = bookmarks.includes(singleHotel.id);
 
       hotelList.push(singleHotel);
     }
@@ -117,12 +98,10 @@ export class DatabaseService {
 
   public async bookmarkHotel(hotelId: number) {
     let hotelArray = this.bookmarkDocument.getArray("hotels") as number[];
-    console.log(hotelArray);
     hotelArray.push(hotelId); 
     this.bookmarkDocument.setArray("hotels", hotelArray);
 
     this.database.save(this.bookmarkDocument);
-    //console.log("bookmark: " + JSON.stringify(this.bookmarkDocument));
   }
 
   // Remove bookmarked hotel from bookmark document
@@ -146,16 +125,13 @@ export class DatabaseService {
               .setString("type", this.DOC_TYPE_BOOKMARKED_HOTELS)
               .setArray("hotels", new Array());
       this.database.save(mutableDocument);
-      console.log("orig document: " + JSON.stringify(mutableDocument));
 
       return mutableDocument;
     } else {
       const docId = resultList[0]["id"]; 
       const doc = await this.database.getDocument(docId);
-      console.log("document: " + JSON.stringify(doc));
       const mutable = MutableDocument.fromDocument(doc);
-      console.log("mutable: " + JSON.stringify(mutable));
-      //return MutableDocument.fromDocument(await this.database.getDocument(docId));
+      return mutable;
     }
   }
 
