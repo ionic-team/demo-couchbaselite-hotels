@@ -1,16 +1,9 @@
 import { Injectable } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
-import { Directory, Filesystem } from '@capacitor/filesystem';
 import {
   Database,
   DatabaseConfiguration,
-  DataSource,
-  Meta,
-  MutableDocument,
-  Ordering,
-  QueryBuilder,
-  SelectResult,
-  Expression
+  MutableDocument
 } from '@ionic-enterprise/couchbase-lite';
 import { Hotel } from '../models/hotel';
 
@@ -39,6 +32,7 @@ export class DatabaseService {
 
       // Create the "bookmarked_hotels" document if it doesn't exist
       this.bookmarkDocument = await this.findOrCreateBookmarkDocument();
+      //console.log("got bookmark: " + JSON.stringify(this.bookmarkDocument));
     }
     else {
       // When running on the web, use hotel data from a file
@@ -64,6 +58,7 @@ export class DatabaseService {
 
       for (let hotel of hotelFile.hotelData) {
         let doc = new MutableDocument()
+          .setNumber('id', hotel.id)
           .setString('name', hotel.name)
           .setString('address', hotel.address)
           .setString('phone', hotel.phone)
@@ -74,17 +69,22 @@ export class DatabaseService {
     }
   }
 
-
   private async retrieveHotelList(): Promise<Hotel[]> {
     // Get all hotels
     const hotelQuery = this.database.createQuery(`SELECT * FROM _ WHERE type = '${this.DOC_TYPE_HOTEL}' ORDER BY name`);
     const hotelResults = await (await hotelQuery.execute()).allResults();
-    console.log(JSON.stringify(hotelResults));
+    //console.log("bookmark: " + JSON.stringify(this.bookmarkDocument));
 
     // Get all bookmarked hotels
-    //const bookmarks = this.bookmarkDocument. bookmarkResults["hotels"] as number[];
+    // let bookmarks = this.bookmarkDocument.getArray("hotels") as number[];
+    // console.log("bookmarks: " + JSON.stringify(bookmarks));
+    // console.log(typeof(bookmarks));
+    // if (typeof(bookmarks) === "string") {
+    //   // convert string to array
+    //   bookmarks = Array.from(bookmarks);
+    //   console.log("bookmarks convert: " + JSON.stringify(bookmarks));
+    // }
 
-    const bookmarks = this.bookmarkDocument.getArray("hotels");
     let hotelList: Hotel[] = [];
     for (let key in hotelResults) {
       // Couchbase can query multiple databases at once, so "_" is just this single database.
@@ -92,7 +92,7 @@ export class DatabaseService {
       let singleHotel = hotelResults[key]["_"] as Hotel;
 
       // Set bookmark status
-      singleHotel.bookmarked = bookmarks.includes(singleHotel.id);
+      //singleHotel.bookmarked = bookmarks.includes(singleHotel.id);
 
       hotelList.push(singleHotel);
     }
@@ -100,14 +100,14 @@ export class DatabaseService {
     return hotelList;
   }
 
-  public async searchHotels(name) {
-    const query = 
-      this.database.createQuery(`SELECT * FROM _ WHERE name LIKE '%name%' AND type = '${this.DOC_TYPE_HOTEL}' ORDER BY name`);
+  public async searchHotels(name): Promise<Hotel[]> {
+    const query = this.database.createQuery(
+        `SELECT * FROM _ WHERE name LIKE '%${name}%' AND type = '${this.DOC_TYPE_HOTEL}' ORDER BY name`);
     const results = await (await query.execute()).allResults();
 
-    let filteredHotels = [];
+    let filteredHotels: Hotel[] = [];
     for (var key in results) {
-      let singleHotel = results[key]["_"];
+      let singleHotel = results[key]["_"] as Hotel;
 
       filteredHotels.push(singleHotel);
     }
@@ -115,31 +115,47 @@ export class DatabaseService {
     return filteredHotels;
   }
 
-  public async bookmarkHotel(hotelId: string) {
-    let hotelArray = this.bookmarkDocument.getArray("hotels");
-    hotelArray.addString(hotelId);
+  public async bookmarkHotel(hotelId: number) {
+    let hotelArray = this.bookmarkDocument.getArray("hotels") as number[];
+    console.log(hotelArray);
+    hotelArray.push(hotelId); 
+    this.bookmarkDocument.setArray("hotels", hotelArray);
+
+    this.database.save(this.bookmarkDocument);
+    //console.log("bookmark: " + JSON.stringify(this.bookmarkDocument));
+  }
+
+  // Remove bookmarked hotel from bookmark document
+  public async unbookmarkHotel(hotelId: number) {
+    let hotelArray = this.bookmarkDocument.getValue("hotels") as number[];
+    hotelArray = hotelArray.filter(id => id !== hotelId);
     this.bookmarkDocument.setArray("hotels", hotelArray);
 
     this.database.save(this.bookmarkDocument);
   }
   
   private async findOrCreateBookmarkDocument(): Promise<MutableDocument> {
-    const bookmarkQuery = this.database.createQuery(`SELECT * FROM _ WHERE type = '${this.DOC_TYPE_BOOKMARKED_HOTELS}'`);
+    // Meta().id is a GUID like e15d1aa2-9be3-4e02-92d8-82bd9d05d8e3
+    const bookmarkQuery = this.database.createQuery(
+      `SELECT META().id AS id FROM _ WHERE type = '${this.DOC_TYPE_BOOKMARKED_HOTELS}'`);
     const resultSet = await bookmarkQuery.execute();
     const resultList = await resultSet.allResults();
-    console.log(JSON.stringify(resultList));
 
     if (resultList.length === 0) {
       const mutableDocument = new MutableDocument()
               .setString("type", this.DOC_TYPE_BOOKMARKED_HOTELS)
               .setArray("hotels", new Array());
       this.database.save(mutableDocument);
+      console.log("orig document: " + JSON.stringify(mutableDocument));
 
       return mutableDocument;
     } else {
-      const result = resultList[0];
-      const docId = result.getString("id");
-      return MutableDocument.fromDocument(await this.database.getDocument(docId));
+      const docId = resultList[0]["id"]; 
+      const doc = await this.database.getDocument(docId);
+      console.log("document: " + JSON.stringify(doc));
+      const mutable = MutableDocument.fromDocument(doc);
+      console.log("mutable: " + JSON.stringify(mutable));
+      //return MutableDocument.fromDocument(await this.database.getDocument(docId));
     }
   }
 

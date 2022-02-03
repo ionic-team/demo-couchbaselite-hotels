@@ -19,10 +19,15 @@ export class Tab1Page {
     this.hotelsDisplayed = this.hotels;
   }
 
-  async toggleBookmark(hotel) {
+  async toggleBookmark(hotel: Hotel) {
     hotel.bookmarked = !hotel.bookmarked;
 
-    await this.databaseService.bookmarkHotel(hotel.id);
+    if (hotel.bookmarked) {
+      await this.databaseService.bookmarkHotel(hotel.id);
+    }
+    else {
+      await this.databaseService.unbookmarkHotel(hotel.id);
+    }
   }
 
   async toggleShowBookmarks() {
