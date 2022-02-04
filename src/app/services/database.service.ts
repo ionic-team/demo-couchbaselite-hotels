@@ -117,19 +117,19 @@ export class DatabaseService {
     const resultSet = await bookmarkQuery.execute();
     const resultList = await resultSet.allResults();
 
+    let mutableDocument: MutableDocument;
     if (resultList.length === 0) {
-      const mutableDocument = new MutableDocument()
+      mutableDocument = new MutableDocument()
               .setString("type", this.DOC_TYPE_BOOKMARKED_HOTELS)
               .setArray("hotels", new Array());
       this.database.save(mutableDocument);
-
-      return mutableDocument;
     } else {
       const docId = resultList[0]["id"]; 
       const doc = await this.database.getDocument(docId);
-      const mutable = MutableDocument.fromDocument(doc);
-      return mutable;
+      mutableDocument = MutableDocument.fromDocument(doc);
     }
+
+    return mutableDocument;
   }
 
   private async getAllHotels() {
