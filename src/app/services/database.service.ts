@@ -11,7 +11,6 @@ import { Hotel } from '../models/hotel';
 })
 export class DatabaseService {
   private database: Database;
-  private hotels: Hotel[] = [];
   private DOC_TYPE_HOTEL = "hotel";
   private DOC_TYPE_BOOKMARKED_HOTELS = "bookmarked_hotels";
   private bookmarkDocument: MutableDocument;
@@ -41,7 +40,6 @@ export class DatabaseService {
     await this.database.open();
 
     const len = (await this.getAllHotels()).length;
-    console.log(`Found ${len} hotels in database`);
     if (len === 0) {
       const hotelFile = await import("../data/hotels");
 
@@ -60,8 +58,7 @@ export class DatabaseService {
 
   private async retrieveHotelList(): Promise<Hotel[]> {
     // Get all hotels
-    const hotelQuery = this.database.createQuery(`SELECT * FROM _ WHERE type = '${this.DOC_TYPE_HOTEL}' ORDER BY name`);
-    const hotelResults = await (await hotelQuery.execute()).allResults();
+    const hotelResults = this.getAllHotels();
 
     // Get all bookmarked hotels
     let bookmarks = this.bookmarkDocument.getArray("hotels") as number[];
@@ -69,7 +66,7 @@ export class DatabaseService {
     let hotelList: Hotel[] = [];
     for (let key in hotelResults) {
       // Couchbase can query multiple databases at once, so "_" is just this single database.
-      // [ { "_": { id: "1", firstName: "Matt" } }, { "_": { id: "2", firstName: "Max" } }]
+      // [ { "_": { id: "1", name: "Matt" } }, { "_": { id: "2", name: "Max" } }]
       let singleHotel = hotelResults[key]["_"] as Hotel;
 
       // Set bookmark status
@@ -138,7 +135,6 @@ export class DatabaseService {
   private async getAllHotels() {
     const query = this.database.createQuery(`SELECT * FROM _ WHERE type = '${this.DOC_TYPE_HOTEL}' ORDER BY name`);
     const result = await query.execute();
-    const results = await result.allResults();
-    return results;
+    return await result.allResults();
   }
 }
