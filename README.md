@@ -14,9 +14,9 @@ Demo app for the "Build Offline-Enabled Mobile Apps With Ionic and Couchbase Lit
 
 ## Tech Details
 
-- UI: [Ionic Framework 5](https://ionicframework.com) and [Angular 12](https://angular.io)
+- UI: [Ionic Framework 6](https://ionicframework.com) and [Angular 12](https://angular.io)
 - Native runtime: [Capacitor 3](https://capacitorjs.com)
-- Database: Couchbase Lite v2.8 powered by [Ionic's CBL integration](https://ionic.io/docs/couchbase-lite)
+- Database: Couchbase Lite v3.0 powered by [Ionic's CBL integration](https://ionic.io/docs/couchbase-lite)
 
 ## How to Run
 

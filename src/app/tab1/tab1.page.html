@@ -6,9 +6,7 @@
         <ion-icon *ngIf="!toggleBookmarkFilter" name="bookmarks-outline" color="danger"></ion-icon>
       </ion-button>
     </ion-buttons>
-    <ion-title>
-      Hotels
-    </ion-title>
+    <ion-title>Hotels</ion-title>
   </ion-toolbar>
 </ion-header>
 
@@ -25,8 +23,8 @@
     </ion-toolbar>
   </ion-header>
 
-  <ion-searchbar placeholder="Search Name..." [(ngModel)]="currentSearchQuery" 
-    (ionChange)="searchQueryChanged($event.target.value)"></ion-searchbar>
+  <ion-searchbar placeholder="Search Name..." (ionChange)="searchQueryChanged($event.target.value)">
+  </ion-searchbar>
   <ion-list>
       <ion-item *ngFor="let hotel of hotelsDisplayed;">
         <ion-label>

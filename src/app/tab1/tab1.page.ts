@@ -10,7 +10,6 @@ import { DatabaseService } from '../services/database.service';
 export class Tab1Page {
   hotels: Hotel[] = [];
   hotelsDisplayed: Hotel[] = [];
-  currentSearchQuery: string = "";
   toggleBookmarkFilter: boolean = false;
 
   constructor(private databaseService: DatabaseService) {}
@@ -20,13 +19,18 @@ export class Tab1Page {
     this.hotelsDisplayed = this.hotels;
   }
 
-  async toggleBookmark(hotel) {
+  async toggleBookmark(hotel: Hotel) {
     hotel.bookmarked = !hotel.bookmarked;
 
-    await this.databaseService.bookmarkHotel(hotel.id);
+    if (hotel.bookmarked) {
+      await this.databaseService.bookmarkHotel(hotel.id);
+    }
+    else {
+      await this.databaseService.unbookmarkHotel(hotel.id);
+    }
   }
 
-  toggleShowBookmarks() {
+  async toggleShowBookmarks() {
     this.toggleBookmarkFilter = !this.toggleBookmarkFilter;
 
     if (this.toggleBookmarkFilter) {
